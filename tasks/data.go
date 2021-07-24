@@ -5,21 +5,30 @@ import (
 )
 
 func GetTaskById(id string) (database.Task, error) {
-	task := &database.Task{}
+	var task database.Task
 	result := database.DBCon.First(&task, id)
 
-	return *task, result.Error
+	return task, result.Error
 }
 
 func GetTasks() ([]database.Task, error) {
-	tasks := []database.Task{}
+	var tasks []database.Task
 	result := database.DBCon.Find(&tasks)
 
 	return tasks, result.Error
 }
 
-func CreateTask(task *database.Task) (database.Task, error) {
+func CreateTask(task *database.Task) error {
 	result := database.DBCon.Create(&task)
+	database.DBCon.Last(&task)
 
-	return *task, result.Error
+	return result.Error
+}
+
+func DeleteTaskById(id string) error {
+	var task database.Task
+
+	result := database.DBCon.Where("id = ?", id).Delete(&task)
+
+	return result.Error
 }

@@ -15,5 +15,7 @@ func main() {
 	r.GET("/task/:id", tasks.GetTaskHandler)
 	r.GET("/tasks", tasks.GetTasksHandler)
 	r.POST("/task", tasks.CreateTaskHandler)
+	r.PATCH("/task/:id", tasks.PatchTaskHandler)
+	r.DELETE("/task/:id", tasks.DeleteTaskHander)
 	r.Run(":8000")
 }
