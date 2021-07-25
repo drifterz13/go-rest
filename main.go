@@ -1,21 +1,24 @@
 package main
 
 import (
-	"github.com/drifterz13/go-rest-api/database"
-	"github.com/drifterz13/go-rest-api/tasks"
 	"github.com/gin-gonic/gin"
+
+	"github.com/drifterz13/go-rest-api/api"
+	"github.com/drifterz13/go-rest-api/database"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
-func init() {
-	database.InitDB()
-}
-
 func main() {
-	r := gin.Default()
-	r.GET("/task/:id", tasks.GetTaskHandler)
-	r.GET("/tasks", tasks.GetTasksHandler)
-	r.POST("/task", tasks.CreateTaskHandler)
-	r.PATCH("/task/:id", tasks.PatchTaskHandler)
-	r.DELETE("/task/:id", tasks.DeleteTaskHander)
-	r.Run(":8000")
+	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	if err != nil {
+		panic("Failed to connect database")
+	}
+
+	server := api.Server{Repository: database.Repository{DB: db}}
+	router := gin.Default()
+	server.Router = router
+
+	server.NewServer()
+	server.Run()
 }
