@@ -1,25 +1,22 @@
 package api
 
 import (
-	data "github.com/drifterz13/go-rest-api/database"
 	"github.com/drifterz13/go-rest-api/tasks"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type Server struct {
-	Repository data.Repository
-	Router     *gin.Engine
+	DB     *gorm.DB
+	Router *gin.Engine
 }
 
 func (server *Server) NewServer() {
-	taskRepository := server.Repository.CreateTaskRepository()
-	taskController := &tasks.TaskController{Repository: taskRepository}
-
-	server.Router.GET("/task/:id", taskController.GetTask)
-	server.Router.GET("/tasks", taskController.GetTasks)
-	server.Router.POST("/task", taskController.CreateTask)
-	server.Router.PATCH("/task/:id", taskController.PatchTask)
-	server.Router.DELETE("/task/:id", taskController.DeleteTask)
+	taskController := tasks.NewTaskController(
+		tasks.NewTaskRepository(server.DB),
+	)
+	taskRoutes := tasks.NewTaskRoutes(server.Router, taskController)
+	taskRoutes.Register()
 }
 
 func (server *Server) Run() {

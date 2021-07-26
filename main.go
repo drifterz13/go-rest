@@ -1,10 +1,8 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
-
 	"github.com/drifterz13/go-rest-api/api"
-	"github.com/drifterz13/go-rest-api/database"
+	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -15,7 +13,7 @@ func main() {
 		panic("Failed to connect database")
 	}
 
-	server := api.Server{Repository: database.Repository{DB: db}}
+	server := api.Server{DB: db}
 	router := gin.Default()
 	server.Router = router
 

@@ -11,7 +11,13 @@ type TaskParams struct {
 }
 
 type TaskController struct {
-	Repository *TaskRepository
+	Repo *TaskRepository
+}
+
+func NewTaskController(repo *TaskRepository) *TaskController {
+	return &TaskController{
+		Repo: repo,
+	}
 }
 
 func (tc *TaskController) GetTask(c *gin.Context) {
@@ -24,7 +30,7 @@ func (tc *TaskController) GetTask(c *gin.Context) {
 		return
 	}
 
-	task, err := tc.Repository.GetTaskById(params.ID)
+	task, err := tc.Repo.FindById(params.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"msg": err.Error(),
@@ -39,7 +45,7 @@ func (tc *TaskController) GetTask(c *gin.Context) {
 }
 
 func (tc *TaskController) GetTasks(c *gin.Context) {
-	tasks, err := tc.Repository.GetTasks()
+	tasks, err := tc.Repo.FindAll()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"msg": err.Error(),
@@ -53,14 +59,14 @@ func (tc *TaskController) GetTasks(c *gin.Context) {
 	})
 }
 
-type CreateTaskSchema struct {
+type CreateTaskDoc struct {
 	Title     string `json:"title" binding:"required"`
 	Completed bool   `json:"completed"`
 }
 
 func (tc *TaskController) CreateTask(c *gin.Context) {
-	var schema CreateTaskSchema
-	if err := c.ShouldBindJSON(&schema); err != nil {
+	var doc CreateTaskDoc
+	if err := c.ShouldBindJSON(&doc); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"msg": err.Error(),
 		})
@@ -68,9 +74,9 @@ func (tc *TaskController) CreateTask(c *gin.Context) {
 		return
 	}
 
-	task := Task{Title: schema.Title, Completed: schema.Completed}
+	task := Task{Title: doc.Title, Completed: doc.Completed}
 
-	if err := tc.Repository.CreateTask(&task); err != nil {
+	if err := tc.Repo.Create(&task); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"msg": err.Error(),
 		})
@@ -83,14 +89,14 @@ func (tc *TaskController) CreateTask(c *gin.Context) {
 	})
 }
 
-type PatchTaskSchema struct {
+type UpdateTaskDoc struct {
 	Title     string `json:"title"`
 	Completed bool   `json:"completed"`
 }
 
-func (tc *TaskController) PatchTask(c *gin.Context) {
+func (tc *TaskController) UpdateTask(c *gin.Context) {
 	var params TaskParams
-	var schema PatchTaskSchema
+	var doc UpdateTaskDoc
 
 	if err := c.ShouldBindUri(&params); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -100,7 +106,7 @@ func (tc *TaskController) PatchTask(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindJSON(&schema); err != nil {
+	if err := c.ShouldBindJSON(&doc); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"msg": err.Error(),
 		})
@@ -108,7 +114,7 @@ func (tc *TaskController) PatchTask(c *gin.Context) {
 		return
 	}
 
-	updatedTask, err := tc.Repository.UpdateTaskById(params.ID, &schema)
+	task, err := tc.Repo.UpdateById(params.ID, &doc)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"msg": err.Error(),
@@ -118,7 +124,7 @@ func (tc *TaskController) PatchTask(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"task": updatedTask,
+		"task": task,
 	})
 }
 
@@ -132,7 +138,7 @@ func (tc *TaskController) DeleteTask(c *gin.Context) {
 		return
 	}
 
-	err := tc.Repository.DeleteTaskById(params.ID)
+	err := tc.Repo.DeleteById(params.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"msg": err.Error(),
