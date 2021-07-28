@@ -59,14 +59,15 @@ func (tc *TaskController) GetTasks(c *gin.Context) {
 	})
 }
 
-type CreateTaskDoc struct {
+type CreateTaskPayload struct {
 	Title     string `json:"title" binding:"required"`
 	Completed bool   `json:"completed"`
 }
 
 func (tc *TaskController) CreateTask(c *gin.Context) {
-	var doc CreateTaskDoc
-	if err := c.ShouldBindJSON(&doc); err != nil {
+	var payload CreateTaskPayload
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"msg": err.Error(),
 		})
@@ -74,9 +75,8 @@ func (tc *TaskController) CreateTask(c *gin.Context) {
 		return
 	}
 
-	task := Task{Title: doc.Title, Completed: doc.Completed}
-
-	if err := tc.Repo.Create(&task); err != nil {
+	task := &Task{Title: payload.Title, Completed: payload.Completed}
+	if err := tc.Repo.Create(task); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"msg": err.Error(),
 		})
@@ -89,14 +89,14 @@ func (tc *TaskController) CreateTask(c *gin.Context) {
 	})
 }
 
-type UpdateTaskDoc struct {
-	Title     string `json:"title"`
-	Completed bool   `json:"completed"`
+type UpdateTaskPayload struct {
+	Title     string `json:"title,omitempty"`
+	Completed bool   `json:"completed,omitempty"`
 }
 
 func (tc *TaskController) UpdateTask(c *gin.Context) {
 	var params TaskParams
-	var doc UpdateTaskDoc
+	var payload UpdateTaskPayload
 
 	if err := c.ShouldBindUri(&params); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -106,7 +106,7 @@ func (tc *TaskController) UpdateTask(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindJSON(&doc); err != nil {
+	if err := c.ShouldBindJSON(&payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"msg": err.Error(),
 		})
@@ -114,7 +114,7 @@ func (tc *TaskController) UpdateTask(c *gin.Context) {
 		return
 	}
 
-	task, err := tc.Repo.UpdateById(params.ID, &doc)
+	task, err := tc.Repo.UpdateById(params.ID, &payload)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"msg": err.Error(),
@@ -147,5 +147,5 @@ func (tc *TaskController) DeleteTask(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.Status(http.StatusNoContent)
 }

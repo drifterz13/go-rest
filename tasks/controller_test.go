@@ -1,11 +1,9 @@
 package tasks_test
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/drifterz13/go-rest-api/tasks"
@@ -56,58 +54,139 @@ func (repo *MockTaskRepository) DeleteById(id string) error {
 	return nil
 }
 
-func (repo *MockTaskRepository) UpdateById(id string, doc *tasks.UpdateTaskDoc) (*tasks.Task, error) {
+func (repo *MockTaskRepository) UpdateById(id string, doc *tasks.UpdateTaskPayload) (*tasks.Task, error) {
 	return &mockTask1, nil
 }
 
-func TestTaskController(t *testing.T) {
-	router := gin.Default()
-	controller := &tasks.TaskController{Repo: &MockTaskRepository{}}
+func TestGetTasksHandler(t *testing.T) {
+	t.Run("get tasks", func(t *testing.T) {
+		router := gin.Default()
+		repository := &MockTaskRepository{}
+		controller := tasks.NewTaskController(repository)
+		router.GET("/tasks", controller.GetTasks)
 
-	taskRoutes := tasks.NewTaskRoutes(router, controller)
-	taskRoutes.Register()
+		req, _ := http.NewRequest(http.MethodGet, "/tasks", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
 
+		wantCode := http.StatusOK
+
+		if w.Code != wantCode {
+			t.Fatalf("status code, want: %d, got: %d", wantCode, w.Code)
+		}
+	})
+}
+
+func TestCreateTaskHandler(t *testing.T) {
 	tt := []struct {
-		name       string
-		method     string
-		url        string
-		statusCode int
+		name     string
+		method   string
+		wantCode int
+		body     string
 	}{
 		{
-			name:       "get task",
-			url:        "/task/1",
-			method:     http.MethodGet,
-			statusCode: http.StatusOK,
+			name:     "with valid payload",
+			method:   http.MethodPost,
+			wantCode: http.StatusOK,
+			body:     `{"title":"Sleep","completed":false}`,
 		},
 		{
-			name:       "get tasks",
-			url:        "/tasks",
-			method:     http.MethodGet,
-			statusCode: http.StatusOK,
+			name:     "with empty payload",
+			method:   http.MethodPost,
+			wantCode: http.StatusBadRequest,
+		},
+		{
+			name:     "with invalid payload",
+			method:   http.MethodPost,
+			wantCode: http.StatusBadRequest,
+			body:     `{"name":"Sleep","is_completed":false}`,
 		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Logf(fmt.Sprintf("case %s\n", tc.name))
+			router := gin.Default()
+			repository := &MockTaskRepository{}
+			controller := tasks.NewTaskController(repository)
+			router.POST("/task", controller.CreateTask)
 
-			req, _ := http.NewRequest(tc.method, tc.url, nil)
+			req, _ := http.NewRequest(tc.method, "/task", strings.NewReader(tc.body))
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
 
-			if w.Code != tc.statusCode {
-				t.Errorf("Want status: %d but got: %d\n", tc.statusCode, w.Code)
+			if tc.wantCode != w.Code {
+				t.Fatalf("status code, want: %d, got: %d", tc.wantCode, w.Code)
 			}
-
-			var result interface{}
-			resp, _ := io.ReadAll(w.Body)
-
-			json.Unmarshal(resp, &result)
-
-			t.Logf("status: %d", w.Code)
-			t.Logf("read value: %v", string(resp[:]))
-			// t.Logf("response: %v", result)
 		})
 	}
+}
 
+func TestUpdateTaskHandler(t *testing.T) {
+	tt := []struct {
+		name     string
+		method   string
+		wantCode int
+		body     string
+	}{
+		{
+			name:     "with valid payload",
+			method:   http.MethodPatch,
+			wantCode: http.StatusOK,
+			body:     `{"title":"Learn GO","completed":false}`,
+		},
+		{
+			name:     "with partial payload",
+			method:   http.MethodPatch,
+			wantCode: http.StatusOK,
+			body:     `{"completed":true}`,
+		},
+		{
+			name:     "with empty payload",
+			method:   http.MethodPatch,
+			wantCode: http.StatusBadRequest,
+		},
+		{
+			name:     "with invalid payload",
+			method:   http.MethodPatch,
+			wantCode: 1,
+			body:     `{"is_valid":false}`,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			router := gin.Default()
+			repository := &MockTaskRepository{}
+			controller := tasks.NewTaskController(repository)
+			router.PATCH("/task/:id", controller.UpdateTask)
+
+			req, _ := http.NewRequest(tc.method, "/task/1", strings.NewReader(tc.body))
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			if tc.wantCode != w.Code {
+				t.Fatalf("status code, want: %d, got: %d", tc.wantCode, w.Code)
+			}
+		})
+	}
+}
+
+func TestDeleteTaskHandler(t *testing.T) {
+	t.Run("delete task", func(t *testing.T) {
+		router := gin.Default()
+		repository := &MockTaskRepository{}
+		controller := tasks.NewTaskController(repository)
+
+		router.DELETE("/task/:id", controller.DeleteTask)
+
+		req, _ := http.NewRequest(http.MethodDelete, "/task/1", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		wantCode := http.StatusNoContent
+
+		if wantCode != w.Code {
+			t.Fatalf("status code, want: %d, got: %d", wantCode, w.Code)
+		}
+	})
 }

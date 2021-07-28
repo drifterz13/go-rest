@@ -10,7 +10,7 @@ type TaskRepository interface {
 	Create(task *Task) error
 	Last() (*Task, error)
 	DeleteById(id string) error
-	UpdateById(id string, doc *UpdateTaskDoc) (*Task, error)
+	UpdateById(id string, doc *UpdateTaskPayload) (*Task, error)
 }
 
 type GORM_TaskRepository struct {
@@ -54,7 +54,7 @@ func (repo *GORM_TaskRepository) DeleteById(id string) error {
 	return result.Error
 }
 
-func (repo *GORM_TaskRepository) UpdateById(id string, doc *UpdateTaskDoc) (*Task, error) {
+func (repo *GORM_TaskRepository) UpdateById(id string, doc *UpdateTaskPayload) (*Task, error) {
 	var task Task
 
 	if result := repo.DB.First(&task, id); result.Error != nil {
