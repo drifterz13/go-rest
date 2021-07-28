@@ -12,9 +12,8 @@ type Server struct {
 }
 
 func (server *Server) NewServer() {
-	taskController := tasks.NewTaskController(
-		tasks.NewTaskRepository(server.DB),
-	)
+	taskRepo := tasks.NewGORM_TaskRepository(server.DB)
+	taskController := tasks.NewTaskController(taskRepo)
 	taskRoutes := tasks.NewTaskRoutes(server.Router, taskController)
 	taskRoutes.Register()
 }

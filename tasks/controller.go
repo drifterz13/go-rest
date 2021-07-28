@@ -11,10 +11,10 @@ type TaskParams struct {
 }
 
 type TaskController struct {
-	Repo *TaskRepository
+	Repo TaskRepository
 }
 
-func NewTaskController(repo *TaskRepository) *TaskController {
+func NewTaskController(repo TaskRepository) *TaskController {
 	return &TaskController{
 		Repo: repo,
 	}
