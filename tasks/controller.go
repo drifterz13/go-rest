@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -90,8 +91,16 @@ func (tc *TaskController) CreateTask(c *gin.Context) {
 }
 
 type UpdateTaskPayload struct {
-	Title     string `json:"title,omitempty"`
-	Completed bool   `json:"completed,omitempty"`
+	Title     *string `json:"title,omitempty"`
+	Completed *bool   `json:"completed,omitempty"`
+}
+
+func (p *UpdateTaskPayload) Validate() error {
+	if p.Title == nil && p.Completed == nil {
+		return errors.New("At least one field is required.")
+	}
+
+	return nil
 }
 
 func (tc *TaskController) UpdateTask(c *gin.Context) {
@@ -107,6 +116,14 @@ func (tc *TaskController) UpdateTask(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"msg": err.Error(),
+		})
+
+		return
+	}
+
+	if err := payload.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"msg": err.Error(),
 		})
